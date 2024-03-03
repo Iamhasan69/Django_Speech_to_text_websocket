@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-time Audio Transcription</title>
+    
+    <link rel="stylesheet" href="" >
+</head>
+<body>
+    <div class="container">
+        <div id="transcription" class="text"></div>
+        <div class="buttons">
+
+            <button id="startButton" class="startButton">Start Recording</button>
+            <button id="stopButton" class="stopButton" disabled>Stop Recording</button>
+            <button id="dwnbtn" class="stopButton" disabled>Downlaod Transcription</button>
+
+        </div>
+
+    </div>
+    <script>
+        let mediaRecorder;
+        let isRecording = false;
+        const recordLimit = 90 * 1000;
+        let recordedChunks = [];
+        const recordbtn = document.getElementById('startButton');
+        const stopbtn = document.getElementById('stopButton');
+        const dwnbtn = document.getElementById('dwnbtn')
+        const transcription = document.getElementById('transcription')
+        
+        const Socket = new WebSocket(
+            'ws://'
+            + window.location.host
+            + '/'
+        );
+
+        Socket.onopen = (event) => { 
+            console.log("websocket is now started")
+        }
+        Socket.onmessage = function(event) {
+            transcription.innerText += event.data;
+        }
+        Socket.onerror = (event) => {
+            console.error("something happend", envent.data);
+        }
+        Socket.onclose = (event) => { 
+            console.error("websocket is closed")
+        }
+
+        
+        
+        
+        
+        const startRecording = async () => {
+            
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true});
+                mediaRecorder = new MediaRecorder(stream);
+                recordedChunks = [];
+                
+                mediaRecorder.addEventListener('dataavailable', (event) => {
+                    if (event.data.size > 0 ) {
+                        recordedChunks.push(event.data);
+                        dwnbtn.disabled = false;
+                        Socket.send(event.data);
+                    }
+                })
+                
+                mediaRecorder.addEventListener('stop', () => {
+                    const blob = new Blob(recordedChunks, { type: 'audio/wav'});
+                    const url = URL.createObjectURL(blob);
+                    const audioElement = new Audio(url);
+                    
+                }) 
+        
+                mediaRecorder.start();
+                isRecording = true;
+                recordbtn.disabled = true;
+                stopbtn.disabled = false;
+        
+                setTimeout(stopRecording, recordLimit);
+        
+            } catch (err) {
+                console.error('error accessing microphone: ', err);
+            }
+        
+        
+        }
+        
+        
+        
+        const stopRecording = () => {
+            if (mediaRecorder && mediaRecorder){
+                
+                mediaRecorder.stop();
+                recordbtn.disabled = false;
+                stopbtn.disabled = true;
+                Socket.close();
+            }
+            
+        }
+        
+        const downloadRecording = () => {
+            const blob = new Blob(recordedChunks, { type: 'audio/wav'})
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            document.body.appendChild(a);
+            a.style = 'display: none';
+            a.href = url;
+            a.download = 'recording.wav';
+            a.click();
+            window.URL.revokeObjectURL(url);
+        }
+        
+        
+        
+        recordbtn.addEventListener('click', startRecording);
+        stopbtn.addEventListener('click', stopRecording);
+        
+        dwnbtn.addEventListener('click', downloadRecording);
+    </script>
+</body>
+</html>
