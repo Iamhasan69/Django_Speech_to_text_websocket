@@ -7,6 +7,46 @@
     <title>Real-time Audio Transcription</title>
     
     <link rel="stylesheet" href="" >
+    <style>
+        *{
+            padding: 0;
+            margin: 0;
+        }
+        
+        .container{
+            background-color: black;
+            height: 600px;
+            width: auto;
+            flex-direction: column;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .text{
+            background-color:azure;
+            height: 300px;
+            width: 400px;
+            border-radius: 2em;
+            border: 5px solid azure;
+            color: black;
+            padding: 10px;
+        }
+        
+        .buttons{
+            margin: 10px;
+            width: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .buttons button{
+            margin: 5px;
+            height:30px;
+            background-color: greenyellow;
+            
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -39,15 +79,7 @@
         Socket.onopen = (event) => { 
             console.log("websocket is now started")
         }
-        Socket.onmessage = function(event) {
-            transcription.innerText += event.data;
-        }
-        Socket.onerror = (event) => {
-            console.error("something happend", envent.data);
-        }
-        Socket.onclose = (event) => { 
-            console.error("websocket is closed")
-        }
+        
 
         
         
@@ -59,12 +91,18 @@
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true});
                 mediaRecorder = new MediaRecorder(stream);
                 recordedChunks = [];
-                
                 mediaRecorder.addEventListener('dataavailable', (event) => {
                     if (event.data.size > 0 ) {
                         recordedChunks.push(event.data);
                         dwnbtn.disabled = false;
-                        Socket.send(event.data);
+                        if (Socket.readyState === WebSocket.OPEN) {
+                            // Perform WebSocket operations (send data, close connection, etc.)
+                            Socket.send(recordedChunks)
+                        } else {
+                            console.error('WebSocket is not in the OPEN state.');
+                        }
+                        
+                        
                     }
                 })
                 
@@ -72,6 +110,13 @@
                     const blob = new Blob(recordedChunks, { type: 'audio/wav'});
                     const url = URL.createObjectURL(blob);
                     const audioElement = new Audio(url);
+
+
+                    Socket.onmessage = function(event) {
+                        const data = event.data
+                        transcription.innerText += data;
+                    }
+
                     
                 }) 
         
@@ -79,7 +124,7 @@
                 isRecording = true;
                 recordbtn.disabled = true;
                 stopbtn.disabled = false;
-        
+                
                 setTimeout(stopRecording, recordLimit);
         
             } catch (err) {
@@ -114,7 +159,12 @@
             window.URL.revokeObjectURL(url);
         }
         
-        
+        Socket.onerror = (event) => {
+            console.error("something happend", event.data);
+        }
+        Socket.onclose = (event) => { 
+            console.log("websocket is closed", event.reason)
+        }
         
         recordbtn.addEventListener('click', startRecording);
         stopbtn.addEventListener('click', stopRecording);

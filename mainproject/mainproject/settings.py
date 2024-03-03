@@ -72,7 +72,11 @@ TEMPLATES = [
 # WSGI_APPLICATION = 'mainproject.wsgi.application'
 #Daphne
 ASGI_APPLICATION = 'mainproject.asgi.application'
-
+CHANNEL_LAYERS = {
+    "default": {
+        "BACKEND": "channels.layers.InMemoryChannelLayer"
+    },
+}
 
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
