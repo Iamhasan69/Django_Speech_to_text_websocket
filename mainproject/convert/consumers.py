@@ -12,15 +12,12 @@ class AudioConsumer(AsyncWebsocketConsumer):
         # Perform any cleanup tasks here
         print("WebSocket connection closed.")
     
-    async def receive(self, text_data):
+    async def receive(self, bytes_data):
         try:
             
-            audio_chunk = text_data
-            audio_file = open('audio.wav', 'wb')
-            audio_file.write(audio_chunk)
-            audio_file.close()
+            audio_chunk = bytes_data
             text = model.transcribe(audio_chunk)
-            await self.send(text_data=text)
+            await self.send(text["text"])
         except Exception as e:
             print("Error: ", e)
         

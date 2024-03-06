@@ -31,7 +31,13 @@
             color: black;
             padding: 10px;
         }
-        
+        .light{
+            height: 100px;
+            width:100px;
+            background-color:red;
+            margin: 10px;
+            border-radius: 50%;
+        }
         .buttons{
             margin: 10px;
             width: 400px;
@@ -50,6 +56,7 @@
 </head>
 <body>
     <div class="container">
+        <div class="light" id="light"></div>
         <div id="transcription" class="text"></div>
         <div class="buttons">
 
@@ -69,7 +76,7 @@
         const stopbtn = document.getElementById('stopButton');
         const dwnbtn = document.getElementById('dwnbtn')
         const transcription = document.getElementById('transcription')
-        
+        const signal = document.getElementById('light');
         const Socket = new WebSocket(
             'ws://'
             + window.location.host
@@ -77,7 +84,8 @@
         );
 
         Socket.onopen = (event) => { 
-            console.log("websocket is now started")
+            console.log("websocket connection is on")
+            signal.style.backgroundColor = "green";
         }
         
 
@@ -97,9 +105,7 @@
                         dwnbtn.disabled = false;
                         if (Socket.readyState === WebSocket.OPEN) {
                             // Perform WebSocket operations (send data, close connection, etc.)
-                            Socket.send(recordedChunks)
-                        } else {
-                            console.error('WebSocket is not in the OPEN state.');
+                            Socket.send(event.data)
                         }
                         
                         
@@ -113,8 +119,9 @@
 
 
                     Socket.onmessage = function(event) {
-                        const data = event.data
-                        transcription.innerText += data;
+                        let mss = event.data
+                        console.log(mss)
+                        transcription.innerText += mss;
                     }
 
                     
@@ -164,6 +171,7 @@
         }
         Socket.onclose = (event) => { 
             console.log("websocket is closed", event.reason)
+            signal.style.backgroundColor = "red";
         }
         
         recordbtn.addEventListener('click', startRecording);
