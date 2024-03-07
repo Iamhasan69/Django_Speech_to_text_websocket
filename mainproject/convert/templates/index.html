@@ -87,6 +87,7 @@
             console.log("websocket connection is on")
             signal.style.backgroundColor = "green";
         }
+
         
 
         
@@ -94,35 +95,42 @@
         
         
         const startRecording = async () => {
-            
+            transcription.innerText = ""
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true});
                 mediaRecorder = new MediaRecorder(stream);
                 recordedChunks = [];
-                mediaRecorder.addEventListener('dataavailable', (event) => {
-                    if (event.data.size > 0 ) {
-                        recordedChunks.push(event.data);
-                        dwnbtn.disabled = false;
-                        if (Socket.readyState === WebSocket.OPEN) {
-                            // Perform WebSocket operations (send data, close connection, etc.)
+                try {
+
+                    mediaRecorder.addEventListener('dataavailable',  (event) => {
+                        if ( event.data && event.data.size > 0 ) {
+                            recordedChunks.push(event.data);
+                            dwnbtn.disabled = false;
+                            
+
                             Socket.send(event.data)
+                          
+                            Socket.onmessage = function(event) {
+                                const mss = event.data
+                                console.log(mss)
+                                transcription.innerText += mss + '\n';
+                            }
+                            
+                            
                         }
-                        
-                        
-                    }
-                })
+                    })
+                } catch (err) {
+                    console.error(err)
+                }
                 
                 mediaRecorder.addEventListener('stop', () => {
                     const blob = new Blob(recordedChunks, { type: 'audio/wav'});
                     const url = URL.createObjectURL(blob);
                     const audioElement = new Audio(url);
+                    console.log(blob)
 
 
-                    Socket.onmessage = function(event) {
-                        let mss = event.data
-                        console.log(mss)
-                        transcription.innerText += mss;
-                    }
+                    
 
                     
                 }) 
@@ -149,7 +157,7 @@
                 mediaRecorder.stop();
                 recordbtn.disabled = false;
                 stopbtn.disabled = true;
-                Socket.close();
+
             }
             
         }
@@ -166,6 +174,11 @@
             window.URL.revokeObjectURL(url);
         }
         
+        
+        recordbtn.addEventListener('click', startRecording);
+        stopbtn.addEventListener('click', stopRecording);
+        
+        dwnbtn.addEventListener('click', downloadRecording);
         Socket.onerror = (event) => {
             console.error("something happend", event.data);
         }
@@ -173,11 +186,6 @@
             console.log("websocket is closed", event.reason)
             signal.style.backgroundColor = "red";
         }
-        
-        recordbtn.addEventListener('click', startRecording);
-        stopbtn.addEventListener('click', stopRecording);
-        
-        dwnbtn.addEventListener('click', downloadRecording);
     </script>
 </body>
 </html>
