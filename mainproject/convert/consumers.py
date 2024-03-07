@@ -1,23 +1,46 @@
-import asyncio
+
+import json
+import numpy as np
+import torch
 import whisper as ws
-from channels.generic.websocket import AsyncWebsocketConsumer
-model = ws.load_model("base")
+from channels.generic.websocket import WebsocketConsumer
+model = ws.load_model("small.en")
 
 
-class AudioConsumer(AsyncWebsocketConsumer):
-    async def connect(self):
-        await self.accept()
+
+class AudioConsumer(WebsocketConsumer):
+     def connect(self):
+           self.accept()
+           
     
-    async def disconnect(self, close_code):
+     def disconnect(self, close_code):
         # Perform any cleanup tasks here
-        print("WebSocket connection closed.")
+        self.send("WebSocket connection closed.")
     
-    async def receive(self, bytes_data):
+     def receive(self, text_data=None, bytes_data=None):
         try:
+            if bytes_data:
+                self.send(text_data = "pohach gaya"
+                )
+            if len(bytes_data) % 2 != 0:
+            # Adjust the length of bytes_data to make it even
+                bytes_data = bytes_data[:-1]
+            audio_array = np.frombuffer(bytes_data, dtype=np.int16)
+            audio_array_float = audio_array.astype(np.float32) / 32768.0
+
             
-            audio_chunk = bytes_data
-            text = model.transcribe(audio_chunk)
-            await self.send(text["text"])
-        except Exception as e:
-            print("Error: ", e)
+            # print("Data type of audio_array_float:", audio_array_float.dtype)
+             # Transcribe audio using the model
+           
+
+            text = model.transcribe(audio_array_float, task="transcribe", verbose=True)
+            # text = model.transcribe(bytes_data, task="transcribe", verbose=True)
+            print("recive and processing : ", text)
+            self.send(text_data=text['text'])
+        except Exception as error:
+            print(f"error:{error}")
+        
+        
+        # await self.send(text_data = text["text"])
+        
         
