@@ -21,4 +21,4 @@ This project demonstrates a Django web application that utilizes the Whisper AI 
 
 
 <b>Now u know what need to do.</b>
-
+@hasan 
